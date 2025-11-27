@@ -3,8 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 // Usar directamente la URL de Supabase y la ANON KEY en el bundle.
 // Netlify inyectará estas variables durante el build cuando estén
 // configuradas en Site settings → Environment → Environment variables.
-const supabaseUrl = import.meta?.env?.VITE_SUPABASE_URL || '/';
-const supabaseKey = import.meta?.env?.VITE_SUPABASE_ANON_KEY || 'TU_ANON_KEY';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseUrl.startsWith('http')) {
+  throw new Error('VITE_SUPABASE_URL no está definida o es inválida. Revisa tus variables de entorno en Netlify.');
+}
+if (!supabaseKey || supabaseKey.length < 20) {
+  throw new Error('VITE_SUPABASE_ANON_KEY no está definida o es inválida. Revisa tus variables de entorno en Netlify.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
