@@ -27,14 +27,16 @@ export async function registerUser(payload: RegisterPayload) {
       },
     });
 
+    // Si el usuario ya existe en Auth, mostrar mensaje claro y no continuar
+    if (error && error.message && error.message.includes('User already registered')) {
+      throw new Error('Este correo ya está registrado. Por favor inicia sesión.');
+    }
     if (error) {
       console.error("Error en auth.signUp:", error);
       throw error;
     }
 
-    // En algunos proyectos el signUp no entrega sesión (por confirmación de email),
-    // lo que provoca que la siguiente inserción se haga como anon y falle si hay RLS.
-    // Intentamos hacer signIn inmediatamente para obtener un JWT si no hay sesión.
+    // Obtener el ID del usuario creado
     let userId = data.user?.id;
     let session = (data as any).session;
     if (!session) {
@@ -43,21 +45,20 @@ export async function registerUser(payload: RegisterPayload) {
           email,
           password,
         });
-        if (signInError) {
-          console.warn("signInWithPassword falló tras signUp (puede requerir verificación de email):", signInError);
-        } else {
+        if (!signInError) {
           session = (signInData as any).session;
           userId = signInData.user?.id || userId;
         }
       } catch (siErr) {
-        console.warn("Excepción al intentar signIn tras signUp:", siErr);
+        // Si no puede iniciar sesión, igual intentamos crear el perfil
       }
     }
 
     if (!userId) {
       throw new Error("No se obtuvo el ID del usuario tras el signUp.");
     }
-    // Verificar si el usuario ya existe en la tabla 'users'
+
+    // 2) Insertar perfil en tabla public.users (si no existe)
     const { data: existingUser, error: fetchError } = await supabase
       .from("users")
       .select("id")
@@ -65,35 +66,28 @@ export async function registerUser(payload: RegisterPayload) {
       .single();
 
     if (fetchError && fetchError.code !== "PGRST116") {
-      // PGRST116 significa "no rows found", lo cual es esperado si el usuario no existe
       console.error("Error al verificar usuario existente:", fetchError);
       throw fetchError;
     }
 
-    if (existingUser) {
-      console.warn(`Usuario con ID ${userId} ya existe en public.users. Saltando inserción.`);
-      return data; // Retorna los datos del signUp si el perfil ya existe
-    }
+    if (!existingUser) {
+      // Insertar perfil en tabla users usando función Netlify
+      try {
+        const resp = await fetch('/.netlify/functions/createProfile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: userId, name, email, role, level, grade }),
+        });
 
-    // 2) Insertar perfil en tabla public.users
-    // Llamamos a una función server-side (Netlify) que usa la service_role key
-    // para crear el perfil incluso si el cliente no tiene sesión (por ejemplo,
-    // cuando se requiere verificación de email antes de iniciar sesión).
-    try {
-      const resp = await fetch('/.netlify/functions/createProfile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: userId, name, email, role, level, grade }),
-      });
-
-      if (!resp.ok) {
-        const body = await resp.text();
-        console.error('createProfile function failed:', resp.status, body);
-        throw new Error('Failed to create profile via server function');
+        if (!resp.ok) {
+          const body = await resp.text();
+          console.error('createProfile function failed:', resp.status, body);
+          throw new Error('No se pudo crear el perfil del usuario.');
+        }
+      } catch (fnErr) {
+        console.error('Error llamando a createProfile:', fnErr);
+        throw fnErr;
       }
-    } catch (fnErr) {
-      console.error('Error calling createProfile function:', fnErr);
-      throw fnErr;
     }
 
     return data;
