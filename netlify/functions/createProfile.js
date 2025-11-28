@@ -41,11 +41,15 @@ export default async (req, context) => {
     });
 
     const data = await resp.json();
+    // Log explícito para ver la respuesta de Supabase en Netlify
+    console.log('Supabase response:', JSON.stringify(data));
     if (!resp.ok) {
+      console.error('Failed to insert profile:', data);
       return new Response(JSON.stringify({ error: 'Failed to insert profile', details: data }), { status: resp.status });
     }
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (err) {
+    console.error('Exception in createProfile:', err);
     return new Response(JSON.stringify({ error: 'Failed to insert profile', details: err.message }), { status: 500 });
   }
 };
