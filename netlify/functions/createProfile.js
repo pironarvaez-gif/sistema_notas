@@ -1,30 +1,27 @@
-const fetch = require('node-fetch');
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+export default async (req, context) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
   }
 
-  const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
+  // Usar Netlify.env.get si está disponible, si no process.env
+  const SUPABASE_URL = (globalThis.Netlify?.env?.get?.('SUPABASE_URL')) || (globalThis.Netlify?.env?.get?.('VITE_SUPABASE_URL')) || process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const SERVICE_ROLE_KEY = (globalThis.Netlify?.env?.get?.('SUPABASE_SERVICE_ROLE_KEY')) || (globalThis.Netlify?.env?.get?.('SERVICE_ROLE_KEY')) || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
 
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Supabase URL or service role key not configured' }),
-    };
+    return new Response(JSON.stringify({ error: 'Supabase URL or service role key not configured' }), { status: 500 });
   }
 
   let payload;
   try {
-    payload = JSON.parse(event.body);
+    payload = await req.json();
   } catch (e) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON' }) };
+    return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
   }
 
   const { id, name, email, role, level, grade } = payload;
-  if (!id || !email) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Missing id or email' }) };
+  if (!id || !email || !name || !role) {
+    return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
   }
 
   const url = `${SUPABASE_URL}/rest/v1/users`;
@@ -44,8 +41,11 @@ exports.handler = async (event) => {
     });
 
     const data = await resp.json();
-    return { statusCode: resp.status, body: JSON.stringify(data) };
+    if (!resp.ok) {
+      return new Response(JSON.stringify({ error: 'Failed to insert profile', details: data }), { status: resp.status });
+    }
+    return new Response(JSON.stringify(data), { status: 200 });
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to insert profile', details: err.message }) };
+    return new Response(JSON.stringify({ error: 'Failed to insert profile', details: err.message }), { status: 500 });
   }
 };
