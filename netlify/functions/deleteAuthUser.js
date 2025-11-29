@@ -4,8 +4,17 @@ export default async (req, context) => {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
   }
 
-  const SERVICE_ROLE_KEY = (globalThis.Netlify?.env?.get?.('SUPABASE_SERVICE_ROLE_KEY')) || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const SUPABASE_URL = (globalThis.Netlify?.env?.get?.('SUPABASE_URL')) || process.env.SUPABASE_URL;
+  // Intentar obtener SUPABASE_URL de todas las variantes posibles
+  const SUPABASE_URL =
+    (globalThis.Netlify?.env?.get?.('SUPABASE_URL')) ||
+    (globalThis.Netlify?.env?.get?.('VITE_SUPABASE_URL')) ||
+    process.env.SUPABASE_URL ||
+    process.env.VITE_SUPABASE_URL;
+  const SERVICE_ROLE_KEY =
+    (globalThis.Netlify?.env?.get?.('SUPABASE_SERVICE_ROLE_KEY')) ||
+    (globalThis.Netlify?.env?.get?.('SERVICE_ROLE_KEY')) ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SERVICE_ROLE_KEY;
 
   let payload;
   try {
