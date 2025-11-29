@@ -19,7 +19,7 @@ export default async (req, context) => {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
   }
 
-  const { id, name, email, role, level, grade } = payload;
+  const { id, name, email, role, level, grade, password } = payload;
   if (!id || !email || !name || !role) {
     return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
   }
@@ -27,6 +27,11 @@ export default async (req, context) => {
   const url = `${SUPABASE_URL}/rest/v1/users`;
 
   try {
+    // Solo guardar la contraseña si el usuario es estudiante
+    const userData = { id, name, email, role, level, grade };
+    if (role === 'student' && password) {
+      userData.password = password;
+    }
     const resp = await fetch(url, {
       method: 'POST',
       headers: {
@@ -35,9 +40,7 @@ export default async (req, context) => {
         Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
         Prefer: 'return=representation',
       },
-      body: JSON.stringify([
-        { id, name, email, role, level, grade }
-      ]),
+      body: JSON.stringify([userData]),
     });
 
     const data = await resp.json();

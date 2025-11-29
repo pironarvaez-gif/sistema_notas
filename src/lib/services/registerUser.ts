@@ -71,12 +71,12 @@ export async function registerUser(payload: RegisterPayload) {
     }
 
     if (!existingUser) {
-      // Insertar perfil en tabla users usando función Netlify
+      // Insertar perfil en tabla users usando función Netlify, incluyendo la contraseña
       try {
         const resp = await fetch('/.netlify/functions/createProfile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: userId, name, email, role, level, grade }),
+          body: JSON.stringify({ id: userId, name, email, role, level, grade, password }),
         });
 
         if (!resp.ok) {

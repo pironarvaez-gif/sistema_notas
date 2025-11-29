@@ -155,6 +155,9 @@ const TeacherDashboard = ({ user }) => {
       <div className="flex flex-col">
         <span className="font-semibold text-gray-900">{student.name}</span>
         <span className="text-sm text-gray-600">Email: {student.email}</span>
+        {student.password && (
+          <span className="text-sm text-gray-600">Contraseña: <span className="font-mono bg-gray-200 px-2 py-1 rounded">{student.password}</span></span>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <button
