@@ -69,13 +69,25 @@ export async function updateGrades(studentId, subject, value) {
 }
 
 export async function deleteUser(userId) {
-  // Primero eliminar notas asociadas (si existen)
+  // 1. Eliminar usuario de Auth usando función Netlify
+  const resp = await fetch('/.netlify/functions/deleteAuthUser', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId }),
+  });
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error('No se pudo eliminar el usuario de Auth: ' + body);
+  }
+
+  // 2. Eliminar notas asociadas (si existen)
   const { error: err1 } = await supabase
     .from('grades')
     .delete()
     .eq('student_id', userId);
   if (err1) throw err1;
 
+  // 3. Eliminar perfil en tabla users
   const { data, error } = await supabase
     .from('users')
     .delete()
