@@ -44,11 +44,12 @@ export default async (req, context) => {
     });
 
     const data = await resp.json();
-    // Log explícito para ver la respuesta de Supabase en Netlify
-    console.log('Supabase response:', JSON.stringify(data));
+    // Logging detallado para diagnóstico
+    console.log('Supabase insert users response:', JSON.stringify(data));
     if (!resp.ok) {
       console.error('Failed to insert profile:', data);
-      return new Response(JSON.stringify({ error: 'Failed to insert profile', details: data }), { status: resp.status });
+      // Devuelve el error exacto de Supabase para depuración
+      return new Response(JSON.stringify({ error: 'Failed to insert profile', supabaseError: data, status: resp.status }), { status: resp.status });
     }
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (err) {
