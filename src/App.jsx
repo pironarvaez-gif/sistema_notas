@@ -1,5 +1,5 @@
-// Forzar deploy Netlify - mostrar credenciales completas
 // listo
+//ultima vercion mejorada
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
