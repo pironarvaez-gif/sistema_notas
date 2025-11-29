@@ -41,10 +41,14 @@ const TeacherDashboard = ({ user }) => {
   const handleDeleteStudent = async (student) => {
     const ok = window.confirm(`¿Eliminar al alumno ${student.name}? Esta acción no se puede deshacer.`);
     if (!ok) return;
-    await removeUser(student.id);
-    setStudents(prev => prev.filter(s => s.id !== student.id));
-    if (selectedStudent?.id === student.id) setSelectedStudent(null);
-    alert('Alumno eliminado');
+    try {
+      await removeUser(student.id);
+      setStudents(prev => prev.filter(s => s.id !== student.id));
+      if (selectedStudent?.id === student.id) setSelectedStudent(null);
+      alert('Alumno eliminado');
+    } catch (err) {
+      alert('Error al eliminar estudiante: ' + (err?.message || err));
+    }
   };
 
   const gradeOptionsFor = (level) => {
@@ -75,13 +79,17 @@ const TeacherDashboard = ({ user }) => {
     if (selectedStudent && newGrade.subject && newGrade.value) {
       const gradeValue = parseFloat(newGrade.value);
       if (gradeValue >= 0 && gradeValue <= 100) {
-        await upsertGrade(selectedStudent.id, newGrade.subject, gradeValue);
-        // Refrescar notas del estudiante
-        const gradesArr = await fetchGrades(selectedStudent.id);
-        const gradesObj = {};
-        gradesArr.forEach(g => { gradesObj[g.subject] = g.value; });
-        setGrades(prev => ({ ...prev, [selectedStudent.id]: gradesObj }));
-        setNewGrade({ subject: '', value: '' });
+        try {
+          await upsertGrade(selectedStudent.id, newGrade.subject, gradeValue);
+          // Refrescar notas del estudiante
+          const gradesArr = await fetchGrades(selectedStudent.id);
+          const gradesObj = {};
+          gradesArr.forEach(g => { gradesObj[g.subject] = g.value; });
+          setGrades(prev => ({ ...prev, [selectedStudent.id]: gradesObj }));
+          setNewGrade({ subject: '', value: '' });
+        } catch (err) {
+          alert('Error al guardar nota: ' + (err?.message || err));
+        }
       } else {
         alert('¡La nota debe estar entre 0 y 100!');
       }
